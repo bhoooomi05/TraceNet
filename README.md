@@ -16,12 +16,13 @@ The project combines machine learning models with external verification and visu
 - Cross-checks information using external sources
 - Provides explanations for model predictions
 - Shows related sources and information flow using interactive graphs
-- <img width="1402" height="667" alt="T1" src="https://github.com/user-attachments/assets/1a0eba30-4834-4806-9e26-19dbfb069c48" />
-- <img width="1257" height="617" alt="T6" src="https://github.com/user-attachments/assets/71abe0b2-0f40-4217-822c-7ca53b354a4f" />
-<img width="1410" height="676" alt="T5" src="https://github.com/user-attachments/assets/5fed76e5-3e6c-4021-96e4-73b1cfe48d25" />
-<img width="1421" height="687" alt="T4" src="https://github.com/user-attachments/assets/f0eff117-0dca-4700-ac73-9c77d4d66fd5" />
-<img width="1282" height="637" alt="T3" src="https://github.com/user-attachments/assets/b849cf12-b7d0-484b-9103-8f3491b6292a" />
-<img width="1300" height="602" alt="T2" src="https://github.com/user-attachments/assets/7a2fd42e-b08e-40ae-b851-d56b6fd7fa65" />
+<img width="1257" height="617" alt="T6" src="https://github.com/user-attachments/assets/fc625446-56f7-40a4-9bb7-893a52d041d1" />
+<img width="1410" height="676" alt="T5" src="https://github.com/user-attachments/assets/23de2a39-885a-48be-b276-a9b04df23bf9" />
+<img width="1421" height="687" alt="T4" src="https://github.com/user-attachments/assets/604c59ab-b1b1-408a-8e8c-81ef917eca19" />
+<img width="1282" height="637" alt="T3" src="https://github.com/user-attachments/assets/a587090e-a226-4edc-888e-25fc3df3c1e8" />
+<img width="1300" height="602" alt="T2" src="https://github.com/user-attachments/assets/b118c55a-5caa-4777-936c-4a540b229f8d" />
+<img width="1402" height="667" alt="T1" src="https://github.com/user-attachments/assets/12c95d87-6559-4bd4-a9a0-22011fab0380" />
+
 
 
 The system follows a pipeline from input collection and preprocessing to model prediction, verification, explainability, and final output.
