@@ -2,7 +2,9 @@
 .env.*
 !.env.example
 
-*.pkl
+
+
+misinfo_detector_model.pkl
 
 __pycache__/
 *.py[cod]
