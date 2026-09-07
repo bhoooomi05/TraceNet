@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TraceNet — Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══ INTRO ═══ */
+#intro{position:fixed;inset:0;z-index:500;background:var(--intro-bg);display:flex;align-items:center;justify-content:center;flex-direction:column}
+#intro-canvas{position:absolute;inset:0}
+.intro-content{position:relative;z-index:10;text-align:center;opacity:0;animation:fadeUp 1s 1.5s ease forwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.intro-msg{font-family:'Share Tech Mono',monospace;font-size:clamp(1rem,2.5vw,1.4rem);color:var(--muted);line-height:2;letter-spacing:.08em;opacity:0;animation:fadeUp 1s 2.5s ease forwards}
+.intro-msg span{color:var(--cyan)}
+#tracenet-title{font-family:'Orbitron',monospace;font-size:clamp(3rem,10vw,7rem);font-weight:900;letter-spacing:.25em;color:transparent;background:linear-gradient(135deg,var(--blue),var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 30px rgba(6,182,212,.4));opacity:0;animation:fadeUp 1.2s 4.5s ease forwards;margin:1.5rem 0 .8rem}
+.intro-sub{font-family:'Rajdhani',sans-serif;font-size:clamp(.9rem,1.8vw,1.1rem);color:var(--muted);letter-spacing:.15em;text-transform:uppercase;opacity:0;animation:fadeUp 1s 5.2s ease forwards}
+.intro-enter-btn{margin-top:3rem;opacity:0;animation:fadeUp 1s 6s ease forwards;background:transparent;border:1px solid var(--cyan);color:var(--cyan);font-family:'Orbitron',monospace;font-size:.8rem;letter-spacing:.25em;text-transform:uppercase;padding:.9rem 2.5rem;cursor:pointer;position:relative;overflow:hidden;transition:all .3s}
+.intro-enter-btn::before{content:'';position:absolute;inset:0;background:var(--cyan);transform:scaleX(0);transform-origin:left;transition:transform .4s;z-index:-1}
+.intro-enter-btn:hover{color:var(--black);box-shadow:var(--glow-cyan)}
+.intro-enter-btn:hover::before{transform:scaleX(1)}
+#detection-pulse{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(59,130,246,.12) 0%,transparent 70%);opacity:0;pointer-events:none;animation:detPulse 1s 3.8s ease forwards}
+@keyframes detPulse{0%{opacity:0;transform:scale(.5)}50%{opacity:1}100%{opacity:0;transform:scale(2)}}
+
+/* ═══ MAIN ═══ */
+#main{position:relative;z-index:2;opacity:0;transition:opacity .8s; pointer-events: none;}
+#main.visible{opacity:1; pointer-events: all;}
+
+/* ═══ HERO ═══ */
+#hero{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:8rem 2rem 5rem;flex-direction:column;text-align:center}
+.hero-badge{font-family:'Share Tech Mono',monospace;font-size:.85rem;letter-spacing:.25em;color:var(--cyan);border:1px solid rgba(6,182,212,.3);padding:.4rem 1.1rem;border-radius:2rem;margin-bottom:2rem;display:inline-block}
+.hero-title{font-family:'Orbitron',monospace;font-size:clamp(2.5rem,6vw,5rem);font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,var(--blue),var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 40px rgba(6,182,212,.2));margin-bottom:1.2rem;line-height:1.15}
+.hero-sub{font-size:clamp(1.1rem,2vw,1.35rem);color:var(--text2);max-width:600px;line-height:1.7;margin-bottom:3rem;font-weight:300}
+.hero-actions{display:flex;gap:1.2rem;flex-wrap:wrap;justify-content:center;margin-bottom:4rem}
+.hero-stats{display:flex;gap:3rem;flex-wrap:wrap;justify-content:center;margin-top:1rem}
+.stat-item{text-align:center}
+.stat-num{font-family:'Orbitron',monospace;font-size:2.4rem;font-weight:900;color:var(--cyan)}
+.stat-label{font-family:'Share Tech Mono',monospace;font-size:.78rem;letter-spacing:.15em;color:var(--muted);margin-top:.3rem}
+
+/* ═══ FEATURE CARDS ═══ */
+#features{padding:6rem 2rem;display:flex;flex-direction:column;align-items:center}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;max-width:1100px;width:100%;margin-top:1rem}
+.feat-card{background:var(--surface);border:1px solid var(--border);border-radius:1rem;padding:2rem 1.8rem;transition:transform .3s,border-color .3s,box-shadow .3s;cursor:default}
+.feat-card:hover{transform:translateY(-6px);border-color:var(--cyan);box-shadow:var(--glow-cyan)}
+.feat-icon{font-size:2rem;margin-bottom:1rem}
+.feat-title{font-family:'Orbitron',monospace;font-size:.95rem;font-weight:700;letter-spacing:.12em;color:var(--cyan);margin-bottom:.6rem}
+.feat-desc{font-size:1rem;color:var(--muted);line-height:1.65;font-weight:300}
+.feat-link{display:inline-block;margin-top:1rem;font-family:'Share Tech Mono',monospace;font-size:.78rem;letter-spacing:.12em;color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(6,182,212,.3);transition:border-color .3s}
+.feat-link:hover{border-color:var(--cyan)}
+
+/* ═══ ASK POPUP ═══ */
+#ask-fab{
+  position:fixed;bottom:5.5rem;right:2rem;z-index:600;
+  display:flex;align-items:center;gap:.7rem;
+  background:linear-gradient(135deg,#3b82f6,#06b6d4);
+  color:#fff;border:none;border-radius:2.5rem;
+  padding:.75rem 1.4rem .75rem 1.1rem;
+  font-family:'Share Tech Mono',monospace;font-size:.78rem;
+  letter-spacing:.1em;cursor:pointer;
+  box-shadow:0 4px 24px rgba(6,182,212,.55),0 0 0 0 rgba(6,182,212,.4);
+  transition:transform .2s,box-shadow .2s, opacity .8s;
+  animation:fabPulse 2.8s ease-in-out infinite;
+  opacity: 0; pointer-events: none; /* Hidden until enterSite */
+}
+#ask-fab.visible { opacity: 1; pointer-events: all; }
+#ask-fab:hover{
+  transform:translateY(-3px) scale(1.04);
+  box-shadow:0 8px 36px rgba(6,182,212,.75),0 0 0 6px rgba(6,182,212,.15);
+  animation:none;
+}
+#ask-fab:active{transform:scale(.97);}
+.fab-icon{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;
+}
+@keyframes fabPulse{
+  0%,100%{box-shadow:0 4px 24px rgba(6,182,212,.55),0 0 0 0 rgba(6,182,212,.4);}
+  50%{box-shadow:0 4px 24px rgba(6,182,212,.55),0 0 0 10px rgba(6,182,212,.0);}
+}
+
+/* overlay */
+.overlay-blur {
+  position:fixed; inset:0; z-index:700;
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(4px);
+  opacity:0; pointer-events:none;
+  transition:opacity .3s;
+}
+.overlay-blur.open { opacity:1; pointer-events:all; }
+
+/* ═══ ASK SIDEBAR ═══ */
+#ask-sidebar {
+  position: fixed; top: 0; right: -450px; 
+  width: min(400px, 100vw); height: 100vh;
+  z-index: 800;
+  background: rgba(17,34,68,.95);
+  border-left: 1px solid rgba(6,182,212,.35);
+  padding: 2.5rem 1.8rem;
+  box-shadow: -10px 0 40px rgba(0,0,0,.5);
+  backdrop-filter: blur(20px);
+  transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+#ask-sidebar.open { right: 0; } 
+
+/* Ask sidebar header/content */
+.ask-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1rem; }
+.ask-title { font-family:'Orbitron',monospace; font-size:1.4rem; font-weight:700; letter-spacing:.1em; background:linear-gradient(90deg,#e2e8f0,#06b6d4); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.ask-desc { font-family:'Rajdhani',sans-serif; font-size:1rem; color:#64748b; margin-bottom:1.8rem; line-height:1.5; }
+.ask-close { background:rgba(100,116,139,.15); border:1px solid rgba(100,116,139,.3); color:#94a3b8; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.1rem; flex-shrink:0; transition:background .2s,color .2s,border-color .2s; line-height:1; }
+.ask-close:hover { background:rgba(248,113,113,.2); border-color:#f87171; color:#f87171; }
+.ask-suggestions { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.5rem; }
+.ask-chip { font-family:'Share Tech Mono',monospace; font-size:.7rem; letter-spacing:.06em; color:#94a3b8; background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.25); border-radius:2rem; padding:.35rem .8rem; cursor:pointer; transition:all .18s; user-select:none; }
+.ask-chip:hover { background:rgba(6,182,212,.2); border-color:#06b6d4; color:#06b6d4; }
+.ask-chip:active { transform:scale(.95); background:rgba(6,182,212,.35); color:#fff; }
+.ask-input-wrap { position:relative; margin-bottom:1.2rem; }
+.ask-input { width:100%; background:rgba(255,255,255,.05); border:1.5px solid rgba(59,130,246,.3); border-radius:.65rem; padding:1rem; color:#e2e8f0; font-family:'Rajdhani',sans-serif; font-size:1.05rem; outline:none; transition:border-color .2s,box-shadow .2s; resize:vertical; min-height: 100px; }
+.ask-input::placeholder { color:#475569; }
+.ask-input:focus { border-color:#06b6d4; box-shadow:0 0 0 3px rgba(6,182,212,.15); }
+.ask-submit { width:100%; padding:1rem; background:#3b82f6; border:2px solid #3b82f6; border-radius:.65rem; color:#fff; font-family:'Orbitron',monospace; font-size:.9rem; font-weight:700; letter-spacing:.18em; text-transform:uppercase; cursor:pointer; transition:background .15s,border-color .15s,transform .1s,box-shadow .15s; box-shadow:0 4px 18px rgba(59,130,246,.4); }
+.ask-submit:hover { background:#06b6d4; border-color:#06b6d4; box-shadow:0 6px 28px rgba(6,182,212,.6); transform:translateY(-1px); }
+.ask-submit:active { background:#0891b2; border-color:#0891b2; transform:scale(.98); }
+.ask-response { margin-top:1.5rem; padding:1rem 1.2rem; background:rgba(6,182,212,.07); border:1px solid rgba(6,182,212,.2); border-radius:.65rem; font-family:'Share Tech Mono',monospace; font-size:.85rem; color:#94a3b8; line-height:1.7; display:none; animation:fadeUp .35s ease; }
+.ask-response.show { display:block; }
+
+
+/* ═══ NEWS DASHBOARD SIDEBAR ═══ */
+#news-fab {
+  position: fixed; bottom: 5.5rem; left: 2rem; z-index: 600;
+  display: flex; align-items: center; gap: .7rem;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); border-radius: 2.5rem;
+  padding: .75rem 1.4rem .75rem 1.1rem;
+  font-family: 'Share Tech Mono', monospace; font-size: .78rem; letter-spacing: .1em;
+  cursor: pointer; transition: all .2s;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  opacity: 0; pointer-events: none; /* Hidden until enterSite */
+}
+#news-fab.visible { opacity: 1; pointer-events: all; }
+#news-fab:hover { border-color: var(--cyan); box-shadow: var(--glow-cyan); transform: translateY(-3px); }
+
+#news-sidebar {
+  position: fixed; top: 0; left: -650px; /* Hidden off-screen left */
+  width: min(600px, 100vw); height: 100vh;
+  z-index: 800;
+  background: #F7F9FB; /* Light theme base as requested */
+  color: #1a1a1a;
+  box-shadow: 10px 0 40px rgba(0,0,0,0.15);
+  transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; flex-direction: column;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+#news-sidebar.open { left: 0; }
+
+.news-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #ffffff;
+}
+.news-title { font-weight: 700; font-size: 1.25rem; color: #0F172A; display: flex; align-items: center; gap: .5rem; }
+.news-close {
+  background: #F1F5F9; border: none; color: #64748B;
+  width: 32px; height: 32px; border-radius: 50%;
+  cursor: pointer; font-size: 1rem; transition: all .2s;
+}
+.news-close:hover { background: #E2E8F0; color: #0F172A; }
+
+.news-body { display: flex; flex: 1; overflow: hidden; }
+
+/* Left panel: Categories */
+.news-sidebar-nav {
+  width: 170px; background: #F8FAFC;
+  border-right: 1px solid #E2E8F0; padding: 1.5rem 1rem;
+  display: flex; flex-direction: column; gap: .5rem;
+}
+.news-cat-btn {
+  background: transparent; border: none; text-align: left;
+  padding: .75rem 1rem; border-radius: 12px;
+  font-family: 'Inter', sans-serif; font-size: .85rem; font-weight: 500;
+  color: #64748B; cursor: pointer; transition: all .2s ease;
+  display: flex; align-items: center; gap: .6rem;
+}
+.news-cat-btn:hover { background: #F1F5F9; color: #334155; }
+.news-cat-btn.active {
+  background: #E0F2FE; /* Soft blue background */
+  color: #0284C7; font-weight: 600;
+}
+
+/* Right panel: Content */
+.news-content-area {
+  flex: 1; padding: 1.5rem; overflow-y: auto;
+  background: #F7F9FB; position: relative;
+}
+.news-list { display: flex; flex-direction: column; gap: 1rem; }
+
+/* Cards */
+.news-card {
+  background: #FFFFFF; border-radius: 16px;
+  padding: 1.25rem; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  border: 1px solid #F1F5F9; transition: transform .2s, box-shadow .2s;
+  display: flex; flex-direction: column; gap: .5rem;
+  animation: fadeUpNews 0.4s ease forwards; opacity: 0;
+}
+.news-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+.news-card-cat { font-size: .7rem; font-weight: 700; text-transform: uppercase; color: #0284C7; letter-spacing: .05em; }
+.news-card-title { font-size: 1rem; font-weight: 600; color: #0F172A; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.news-card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: .5rem; font-size: .75rem; color: #94A3B8; }
+.news-card-source { font-weight: 500; color: #475569; }
+
+/* Loading Animation */
+.news-loader {
+  position: absolute; inset: 0; background: #F7F9FB;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 10; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.news-loader.active { opacity: 1; pointer-events: all; }
+.spinner { width: 30px; height: 30px; border: 3px solid #E2E8F0; border-top-color: #0284C7; border-radius: 50%; animation: spin 1s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUpNews { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Light Theme Overrides for TraceNet Components */
+[data-theme="light"] #ask-sidebar { background:rgba(255,255,255,.95); border-color:rgba(8,145,178,.3); }
+[data-theme="light"] .ask-title { background:linear-gradient(90deg,#0f172a,#0891b2); -webkit-background-clip:text; background-clip:text; }
+[data-theme="light"] .ask-desc { color:#475569; }
+[data-theme="light"] .ask-input { background:rgba(0,0,0,.03); border-color:rgba(8,145,178,.3); color:#0f172a; }
+[data-theme="light"] .ask-input::placeholder { color:#94a3b8; }
+[data-theme="light"] .ask-chip { background:rgba(29,78,216,.08); border-color:rgba(29,78,216,.2); color:#475569; }
+[data-theme="light"] .ask-response { background:rgba(8,145,178,.06); border-color:rgba(8,145,178,.2); color:#334155; }
+
+/* Dark theme logic for the newly added News Sidebar to respect user preferences slightly, while staying predominantly light as requested */
+[data-theme="dark"] #news-sidebar { background: #0F172A; border-right: 1px solid rgba(6,182,212,.3); }
+[data-theme="dark"] .news-header { background: #1E293B; border-bottom-color: #334155; color: #F8FAFC; }
+[data-theme="dark"] .news-title { color: #F8FAFC; }
+[data-theme="dark"] .news-close { background: #334155; color: #CBD5E1; }
+[data-theme="dark"] .news-close:hover { background: #475569; color: #FFF; }
+[data-theme="dark"] .news-sidebar-nav { background: #0B1120; border-right-color: #1E293B; }
+[data-theme="dark"] .news-cat-btn { color: #94A3B8; }
+[data-theme="dark"] .news-cat-btn:hover { background: #1E293B; color: #E2E8F0; }
+[data-theme="dark"] .news-cat-btn.active { background: rgba(59,130,246,.15); color: #38BDF8; }
+[data-theme="dark"] .news-content-area { background: #0F172A; }
+[data-theme="dark"] .news-loader { background: #0F172A; }
+[data-theme="dark"] .news-card { background: #1E293B; border-color: #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+[data-theme="dark"] .news-card-title { color: #F8FAFC; }
+[data-theme="dark"] .news-card-source { color: #CBD5E1; }
+[data-theme="dark"] .news-card-cat { color: #38BDF8; }
+
+@media(max-width:600px){
+  #news-sidebar { width: 100vw; }
+  .news-body { flex-direction: column; }
+  .news-sidebar-nav { width: 100%; border-right: none; border-bottom: 1px solid #E2E8F0; flex-direction: row; overflow-x: auto; padding: 1rem; }
+  .news-cat-btn { white-space: nowrap; }
+  #news-fab { left: 1rem; font-size: .7rem; padding: .65rem 1rem .65rem .9rem; bottom: 5.5rem; }
+  #ask-fab { right:1rem; font-size:.7rem; padding:.65rem 1rem .65rem .9rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<canvas id="bg-canvas"></canvas>
+
+<button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+  <span class="toggle-icon" id="toggle-icon">🌙</span>
+  <div class="toggle-track"><div class="toggle-thumb"></div></div>
+  <span id="toggle-label">DARK</span>
+</button>
+
+<div id="intro">
+  <canvas id="intro-canvas"></canvas>
+  <div id="detection-pulse"></div>
+  <div class="intro-content">
+    <p class="intro-msg"><span>Information travels fast.</span><br>But misinformation travels faster.</p>
+    <h1 id="tracenet-title">TRACENET</h1>
+    <p class="intro-sub">Tracing truth across the digital information network using machine learning</p>
+    <button class="intro-enter-btn" onclick="enterSite()">ENTER SYSTEM ›</button>
+  </div>
+</div>
+
+<div id="main">
+  <nav>
+    <a class="nav-logo" href="/">TRACE<span>NET</span></a>
+    <div class="nav-links">
+      <a href="/index" class="active">Home</a>
+      <a href="/howto">How to Use</a>
+      <a href="/misinfo">Misinfo Detection</a>
+      <a href="/ai_detection">AI Detection</a>
+      <a href="/privacy">World Map</a>
+    </div>
+    <div class="nav-status"><span class="status-dot"></span>SYSTEM ONLINE </div>
+  </nav>
+
+  <div class="page-content">
+    <section id="hero">
+      <span class="hero-badge reveal">🛡 ML-POWERED TRUTH DETECTION</span>
+      <h1 class="hero-title reveal">Welcome to<br>TraceNet</h1>
+      <p class="hero-sub reveal">An intelligent platform that uses machine learning to detect misinformation, AI-generated content, and media manipulation — in real time.</p>
+      <div class="hero-actions reveal">
+        <a href="/misinfo"><button class="btn-primary">⚡ Check Misinfo</button></a>
+        <a href="/ai_detection"><button class="btn-outline">🤖 Detect AI Content</button></a>
+      </div>
+      <div class="hero-stats reveal">
+        <div class="stat-item"><div class="stat-num">94%</div><div class="stat-label">ACCURACY</div></div>
+        <div class="stat-item"><div class="stat-num">4</div><div class="stat-label">ML MODELS</div></div>
+        <div class="stat-item"><div class="stat-num">847</div><div class="stat-label">FEATURES</div></div>
+        <div class="stat-item"><div class="stat-num">22+</div><div class="stat-label">SOURCE DB</div></div>
+      </div>
+    </section>
+
+    <section id="features">
+      <p class="eyebrow reveal">CAPABILITIES</p>
+      <h2 class="section-title reveal">What TraceNet Can Do</h2>
+      <p class="section-sub reveal">Two powerful detection engines in one platform</p>
+      <div class="features-grid">
+        <div class="feat-card reveal">
+          <div class="feat-icon">📰</div>
+          <div class="feat-title">Misinformation Detection</div>
+          <div class="feat-desc">Paste a URL or article text. Our NLP pipeline analyzes linguistic patterns, source credibility, and 847 features to classify content as real or fake.</div>
+          <a href="/misinfo" class="feat-link">TRY IT →</a>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:.1s">
+          <div class="feat-icon">🤖</div>
+          <div class="feat-title">AI Content Detection</div>
+          <div class="feat-desc">Upload images, videos, or documents. TraceNet scans for AI-generated artifacts, deepfake signatures, and synthetic media patterns.</div>
+          <a href="/ai_detection" class="feat-link">TRY IT →</a>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:.2s">
+          <div class="feat-icon">🔬</div>
+          <div class="feat-title">Ensemble ML Pipeline</div>
+          <div class="feat-desc">Four models — Gradient Boosting, Passive Aggressive, Logistic Regression, and Naive Bayes — vote together for maximum accuracy.</div>
+          <a href="/howto" class="feat-link">SEE PIPELINE →</a>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:.3s">
+          <div class="feat-icon">🔒</div>
+          <div class="feat-title">Privacy by Design</div>
+          <div class="feat-desc">No signup. No tracking. No data stored. Your inputs are analyzed locally and never sent to third-party servers.</div>
+          <a href="/privacy" class="feat-link">LEARN MORE →</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="f-logo">TRACE<span style="color:var(--blue)">NET</span></div>
+      <div class="f-copy">ML-POWERED MISINFORMATION DETECTION · SKLEARN · THREE.JS</div>
+      <div class="f-copy">© 2026 TRACENET PROJECT</div>
+    </footer>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+<div id="general-overlay" class="overlay-blur" onclick="closeAllSidebars()"></div>
+
+<button id="news-fab" onclick="openNews()">
+  <span class="fab-icon"> </span>
+  Live News
+</button>
+
+<div id="news-sidebar" role="dialog" aria-modal="true">
+  <div class="news-header">
+    <div class="news-title">News Dashboard</div>
+    <button class="news-close" onclick="closeAllSidebars()">✕</button>
+  </div>
+  <div class="news-body">
+    <div class="news-sidebar-nav" id="news-categories-container">
+      </div>
+    <div class="news-content-area">
+      <div class="news-loader" id="news-loader"><div class="spinner"></div></div>
+      <div class="news-list" id="news-list-container">
+        </div>
+    </div>
+  </div>
+</div>
+
+<button id="ask-fab" onclick="openAsk()">
+  <span class="fab-icon">💬</span>
+  Something you'd like to know?
+</button>
+
+<div id="ask-sidebar" role="dialog" aria-modal="true" aria-labelledby="ask-title">
+  <div class="ask-header">
+    <div>
+      <div class="ask-title" id="ask-title">Ask Anything</div>
+    </div>
+    <button class="ask-close" onclick="closeAllSidebars()" aria-label="Close">✕</button>
+  </div>
+  <p class="ask-desc">Explore trending topics, news, or ask questions about misinformation &amp; AI.</p>
+  <div class="ask-suggestions">
+    <span class="ask-chip" onclick="askFill(this)">Latest health news</span>
+    <span class="ask-chip" onclick="askFill(this)">Cybercrime updates</span>
+    <span class="ask-chip" onclick="askFill(this)">AI deepfake trends</span>
+    <span class="ask-chip" onclick="askFill(this)">Fact-check a claim</span>
+    <span class="ask-chip" onclick="askFill(this)">How does TraceNet work?</span>
+  </div>
+  <div class="ask-input-wrap">
+    <textarea class="ask-input" id="ask-input" rows="4" placeholder="e.g. Latest news in health, Cybercrime updates, How to detect deepfakes..."></textarea>
+  </div>
+  <button class="ask-submit" onclick="submitAsk()">⚡ SUBMIT QUERY</button>
+  <div class="ask-response" id="ask-response"></div>
+</div>
+
+<script>
+if (typeof applyStoredTheme === 'function') applyStoredTheme();
+if (typeof initCursor       === 'function') initCursor();
+
+/* Intro Three.js */
+(function(){
+  const canvas=document.getElementById('intro-canvas');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  const isDark=()=>document.documentElement.getAttribute('data-theme')==='dark';
+  renderer.setClearColor(isDark()?0x0a1628:0xf0f4ff,1);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1000);
+  cam.position.set(0,0,220);
+  const nodeCount=120,positions=[];
+  for(let i=0;i<nodeCount;i++){
+    const theta=Math.random()*Math.PI*2,phi=Math.acos(2*Math.random()-1),r=60+Math.random()*100;
+    positions.push(new THREE.Vector3(r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta)));
+  }
+  const baseMat=new THREE.MeshBasicMaterial({color:0x3b82f6,transparent:true,opacity:.6});
+  const fakeMat=new THREE.MeshBasicMaterial({color:0xf87171,transparent:true,opacity:.9});
+  const detMat=new THREE.MeshBasicMaterial({color:0x06b6d4,transparent:true,opacity:.95});
+  const nodes=[],edges=[];
+  positions.forEach((p,i)=>{
+    const g=new THREE.SphereGeometry(i===0?2.5:.9+Math.random(),6,6);
+    const m=new THREE.Mesh(g,baseMat.clone());
+    m.position.copy(p);m.userData={infected:false,idx:i};
+    scene.add(m);nodes.push(m);
+  });
+  const edgeMat=new THREE.LineBasicMaterial({color:0x3b82f6,transparent:true,opacity:.12});
+  for(let i=0;i<nodeCount;i++)for(let j=i+1;j<nodeCount;j++){
+    if(positions[i].distanceTo(positions[j])<55&&edges.length<200){
+      const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints([positions[i],positions[j]]),edgeMat.clone());
+      l.userData={a:i,b:j};scene.add(l);edges.push(l);
+    }
+  }
+  let infectedCount=0;
+  setTimeout(()=>{nodes[0].material=fakeMat.clone();nodes[0].userData.infected=true;infectedCount=1;spread();},800);
+  function spread(){
+    if(infectedCount>=nodeCount*.45){setTimeout(()=>detectAll(),600);return;}
+    setTimeout(()=>{
+      const infected=nodes.filter(n=>n.userData.infected);
+      const src=infected[Math.floor(Math.random()*infected.length)];
+      edges.filter(e=>e.userData.a===src.userData.idx||e.userData.b===src.userData.idx).forEach(edge=>{
+        const ti=edge.userData.a===src.userData.idx?edge.userData.b:edge.userData.a;
+        const t=nodes[ti];
+        if(!t.userData.infected){t.userData.infected=true;t.material=fakeMat.clone();infectedCount++;edge.material.color.setHex(0xf87171);edge.material.opacity=.3;}
+      });
+      spread();
+    },120);
+  }
+  function detectAll(){
+    let di=0;
+    const int=setInterval(()=>{
+      if(di>=nodes.length){clearInterval(int);return;}
+      nodes[di].material=detMat.clone();
+      edges.filter(e=>e.userData.a===di||e.userData.b===di).forEach(e=>{e.material.color.setHex(0x06b6d4);e.material.opacity=.25;});
+      di++;
+    },18);
+  }
+  window.addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();});
+  let t=0;
+  (function loop(){
+    requestAnimationFrame(loop);t+=.005;
+    scene.rotation.y+=.003;scene.rotation.x=Math.sin(t*.3)*.08;
+    nodes.forEach((n,i)=>{if(n.userData.infected){n.material.opacity=.6+.35*Math.sin(t*4+i);n.scale.setScalar(1+.15*Math.sin(t*3+i));}});
+    renderer.render(scene,cam);
+  })();
+})();
+
+/* ─── APP ENTRY LOGIC ─── */
+function enterSite(){
+  const intro=document.getElementById('intro'), main=document.getElementById('main');
+  intro.style.transition='opacity .8s';intro.style.opacity='0';
+  setTimeout(()=>{
+    intro.style.display='none';
+    main.classList.add('visible');
+    
+    // Show UI Floaters ONLY after entering
+    document.getElementById('ask-fab').classList.add('visible');
+    document.getElementById('news-fab').classList.add('visible');
+    
+    if (typeof initBgCanvas === 'function') initBgCanvas();
+    if (typeof initScrollReveal === 'function') initScrollReveal();
+  },800);
+}
+
+/* ─── SIDEBAR MANAGEMENT ─── */
+function closeAllSidebars() {
+  document.getElementById('general-overlay').classList.remove('open');
+  document.getElementById('ask-sidebar').classList.remove('open');
+  document.getElementById('news-sidebar').classList.remove('open');
+}
+
+/* ─── ASK POPUP LOGIC ─── */
+const askSuggestions = [
+  'Latest news in health', 'Cybercrime updates', 'How to detect deepfakes?',
+  'What is misinformation?', 'AI-generated content risks', 'How does TraceNet work?',
+  'Fact-check: COVID vaccines', 'Social media manipulation tactics'
+];
+
+function openAsk() {
+  closeAllSidebars();
+  document.getElementById('general-overlay').classList.add('open');
+  document.getElementById('ask-sidebar').classList.add('open');
+  setTimeout(() => document.getElementById('ask-input').focus(), 300);
+}
+
+function askFill(chip) {
+  document.getElementById('ask-input').value = chip.textContent;
+  document.getElementById('ask-input').focus();
+}
+
+function submitAsk() {
+  const input = document.getElementById('ask-input');
+  const query = input.value.trim();
+  const resp = document.getElementById('ask-response');
+  if (!query) {
+    input.style.borderColor = '#f87171';
+    input.style.boxShadow = '0 0 0 3px rgba(248,113,113,.15)';
+    setTimeout(() => { input.style.borderColor = ''; input.style.boxShadow = ''; }, 1800);
+    return;
+  }
+  const btn = document.querySelector('.ask-submit');
+  btn.textContent = '⏳ PROCESSING...';
+  btn.disabled = true;
+  setTimeout(() => {
+    const pick = askSuggestions[Math.floor(Math.random() * askSuggestions.length)];
+    resp.innerHTML = `<strong style="color:#06b6d4">Query received:</strong> "${query}"<br><br>` +
+      `TraceNet can help you fact-check this. Try pasting it into the ` +
+      `<a href="/misinfo" style="color:#06b6d4;text-decoration:underline">Misinfo Detection</a> tool ` +
+      `or the <a href="/ai_detection" style="color:#a78bfa;text-decoration:underline">AI Detection</a> tool for a full analysis.<br><br>` +
+      `<span style="color:#475569">Suggested: "${pick}"</span>`;
+    resp.classList.add('show');
+    btn.textContent = '⚡ SUBMIT QUERY';
+    btn.disabled = false;
+  }, 1200);
+}
+
+/* ─── NEWS DASHBOARD LOGIC ─── */
+const newsDataset = {
+  "Education": [
+    { title: "New AI tools integrated into global public school curriculums", source: "EdTech Today", time: "2h ago" },
+    { title: "University enrollment drops as students prefer specialized bootcamps", source: "Global Education News", time: "4h ago" },
+    { title: "Government announces $500M grant for STEM education programs", source: "The Daily Post", time: "5h ago" },
+    { title: "Researchers find gamified learning improves retention by 40%", source: "Science Weekly", time: "8h ago" },
+    { title: "Teachers protest against excessive standardized testing across the state", source: "Metro News", time: "12h ago" }
+  ],
+  "Health": [
+    { title: "Breakthrough study reveals new treatment for autoimmune diseases", source: "Medical Journal", time: "1h ago" },
+    { title: "Global health organization warns of rising seasonal virus variants", source: "Health Watch", time: "3h ago" },
+    { title: "Digital therapy apps seeing massive surge in daily active users", source: "Tech & Health", time: "5h ago" },
+    { title: "Dietary trends shift: Plant-based diets link to longer lifespans", source: "Nutrition Insider", time: "7h ago" },
+    { title: "Hospitals report critical shortages in emergency medical supplies", source: "The Daily Post", time: "10h ago" }
+  ],
+  "Environment": [
+    { title: "Renewable energy production surpassed fossil fuels for the first time", source: "Eco News", time: "1h ago" },
+    { title: "Deforestation rates drop significantly in the Amazon basin", source: "Global Nature", time: "4h ago" },
+    { title: "New startup creates biodegradable plastic from seaweed extract", source: "Green Tech", time: "6h ago" },
+    { title: "Ocean temperatures reach record highs, threatening coral reefs", source: "Climate Watch", time: "9h ago" },
+    { title: "Major cities announce ban on single-use plastics by 2027", source: "Metro News", time: "11h ago" }
+  ],
+  "Cybercrime": [
+    { title: "Massive data breach exposes 50 million user records worldwide", source: "Cyber Sec Daily", time: "30m ago" },
+    { title: "Ransomware attacks target critical infrastructure in multiple states", source: "Tech Insider", time: "2h ago" },
+    { title: "New phishing scam uses deepfake audio to trick corporate executives", source: "Security Watch", time: "5h ago" },
+    { title: "Law enforcement shuts down major dark web marketplace", source: "Global News", time: "8h ago" },
+    { title: "Experts advise updating router firmware to patch critical vulnerability", source: "Tech Weekly", time: "14h ago" }
+  ],
+  "Technology": [
+    { title: "Next-gen quantum computer solves complex problem in mere seconds", source: "Tech Future", time: "1h ago" },
+    { title: "Tech giant announces sweeping updates to their mobile operating system", source: "Silicon Valley Times", time: "3h ago" },
+    { title: "Autonomous vehicles cleared for public testing in 5 more cities", source: "Auto Tech", time: "4h ago" },
+    { title: "New augmented reality glasses promise to replace smartphones", source: "Gadget Weekly", time: "6h ago" },
+    { title: "Major social network shifts algorithm to prioritize local content", source: "Digital Trends", time: "9h ago" }
+  ]
+};
+
+const categories = ["Education", "Health", "Environment", "Cybercrime", "Technology"];
+const categoryIcons = { "Education": "🎓", "Health": "🏥", "Environment": "🌍", "Cybercrime": "🔒", "Technology": "💻" };
+
+function initNewsDashboard() {
+  const catContainer = document.getElementById('news-categories-container');
+  
+  // Render Category Buttons
+  catContainer.innerHTML = categories.map(cat => `
+    <button class="news-cat-btn ${cat === 'Education' ? 'active' : ''}" onclick="switchCategory('${cat}', this)">
+      <span>${categoryIcons[cat]}</span> ${cat}
+    </button>
+  `).join('');
+
+  // Render initial news
+  renderNews('Education');
+}
+
+function switchCategory(category, btnElement) {
+  // Update active state
+  document.querySelectorAll('.news-cat-btn').forEach(btn => btn.classList.remove('active'));
+  btnElement.classList.add('active');
+
+  // Show loading animation
+  const loader = document.getElementById('news-loader');
+  const newsList = document.getElementById('news-list-container');
+  
+  loader.classList.add('active');
+  newsList.style.opacity = '0.3';
+
+  // Simulate network fetch delay
+  setTimeout(() => {
+    renderNews(category);
+    loader.classList.remove('active');
+    newsList.style.opacity = '1';
+  }, 400); // 400ms delay for smooth animation feel
+}
+
+function renderNews(category) {
+  const container = document.getElementById('news-list-container');
+  const items = newsDataset[category];
+
+  container.innerHTML = items.map((item, index) => `
+    <div class="news-card" style="animation-delay: ${index * 0.08}s">
+      <div class="news-card-cat">${category}</div>
+      <div class="news-card-title">${item.title}</div>
+      <div class="news-card-footer">
+        <span class="news-card-source">${item.source}</span>
+        <span>${item.time}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openNews() {
+  closeAllSidebars();
+  document.getElementById('general-overlay').classList.add('open');
+  document.getElementById('news-sidebar').classList.add('open');
+}
+
+// Initialize on script load
+initNewsDashboard();
+
+/* Close sidebars on ESC key */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAllSidebars();
+});
+</script>
+</body>
+</html>

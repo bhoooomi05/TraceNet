@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TraceNet — Misinfo Detection</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
+<style>
+#misinfo{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:8rem 2rem 5rem;flex-direction:column}
+.input-box{width:100%;max-width:780px;background:var(--surface);border:1px solid var(--border);border-radius:1.2rem;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.2);position:relative}
+.input-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent)}
+.input-mode-bar{display:flex;background:var(--surface2);border-bottom:1px solid var(--border)}
+.input-mode-btn{flex:1;padding:0.8rem;background:transparent;border:none;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:0.85rem;cursor:pointer;transition:all 0.2s}
+.input-mode-btn.active{color:var(--cyan);background:var(--surface);border-bottom:2px solid var(--cyan)}
+.url-row{display:flex;align-items:center;gap:.6rem;padding:1.2rem;border-bottom:1px solid var(--border)}
+.url-icon{font-size:.9rem;color:var(--muted);flex-shrink:0}
+.url-input{flex:1;background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:.95rem;color:var(--text);letter-spacing:.05em}
+.url-input::placeholder{color:var(--muted);opacity:.5}
+.text-area{width:100%;background:transparent;border:none;outline:none;font-family:'Rajdhani',sans-serif;font-size:1.1rem;color:var(--text);resize:none;min-height:140px;max-height:300px;line-height:1.6;padding:1.2rem;overflow-y:auto}
+.text-area::placeholder{color:var(--muted);opacity:.45}
+.input-bottom{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem .7rem 1.2rem;border-top:1px solid var(--border);gap:.8rem;flex-wrap:wrap}
+.char-count{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--muted);letter-spacing:.08em}
+.input-actions{display:flex;gap:.6rem;align-items:center}
+.btn-clear{background:rgba(100,116,139,0.15);border:2px solid #64748b;color:#94a3b8;font-family:'Share Tech Mono',monospace;font-size:.78rem;padding:.55rem 1.1rem;border-radius:.35rem;cursor:pointer;transition:all .15s;}
+.btn-clear:hover{background:rgba(248,113,113,0.18);border-color:#f87171;color:#f87171;}
+.examples{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:1.2rem;max-width:780px;width:100%}
+.example-chip{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:#94a3b8;cursor:pointer;padding:.45rem 1rem;border:2px solid rgba(59,130,246,0.3);border-radius:.3rem;background:rgba(59,130,246,0.07);transition:all .15s;}
+.example-chip:hover{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.15);}
+#processing{width:100%;max-width:780px;margin-top:1.5rem;display:none;border:1px solid var(--border);border-radius:.75rem;padding:1.5rem;background:var(--surface2)}
+#processing.active{display:block;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.proc-line{font-family:'Share Tech Mono',monospace;font-size:.85rem;color:var(--muted);padding:.4rem 0;opacity:0;transition:opacity .4s;display:flex;align-items:center;gap:.6rem}
+.proc-line.show{opacity:1}
+.proc-line.done{color:var(--green)}
+.proc-line::before{content:'>';color:var(--cyan)}
+#result-banner{width:100%;max-width:780px;margin-top:1.2rem;display:none;border-radius:.75rem;padding:1.5rem 2rem;position:relative;overflow:hidden}
+#result-banner.active{display:flex;align-items:center;gap:1.5rem;animation:fadeIn .5s ease}
+#result-banner.fake{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3)}
+#result-banner.real{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3)}
+.rb-icon{font-size:2.5rem;flex-shrink:0}
+.rb-verdict{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;letter-spacing:.15em}
+.rb-verdict.fake{color:var(--red)}
+.rb-verdict.real{color:var(--green)}
+.rb-conf{font-family:'Share Tech Mono',monospace;font-size:.88rem;color:var(--muted);margin-top:.3rem;letter-spacing:.1em}
+.rb-desc{font-size:1.05rem;color:var(--text2);line-height:1.6;margin-top:.5rem}
+.rb-actions{margin-top:1rem;display:flex;gap:.8rem;flex-wrap:wrap}
+.rb-btn{font-family:'Share Tech Mono',monospace;font-size:.78rem;padding:.55rem 1.2rem;border-radius:.35rem;cursor:pointer;border:2px solid rgba(59,130,246,0.35);background:rgba(59,130,246,0.1);color:#94a3b8;transition:all .15s;}
+.rb-btn:hover{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.18);}
+.chart-wrap{width:100%;max-width:780px;margin-top:1.2rem;display:none;background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.5rem;animation:fadeIn .5s ease}
+.chart-wrap.active{display:block}
+.chart-title{font-family:'Orbitron',monospace;font-size:.85rem;letter-spacing:.12em;color:var(--cyan);margin-bottom:1rem}
+#reasons-wrap{width:100%;max-width:780px;margin-top:1rem;display:none;gap:1rem}
+#reasons-wrap.active{display:flex;flex-wrap:wrap}
+.reasons-col{flex:1;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.2rem}
+.reasons-col-title{font-family:'Orbitron',monospace;font-size:.78rem;letter-spacing:.12em;margin-bottom:.7rem}
+.reasons-col-title.fake{color:var(--red)}
+.reasons-col-title.real{color:var(--green)}
+.reason-item{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--muted);padding:.3rem 0;border-bottom:1px solid var(--border);line-height:1.4}
+.source-item{padding:0.8rem;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:0.85rem;display:flex;flex-direction:column;gap:0.4rem}
+.source-badge{align-self:flex-start;padding:0.15rem 0.4rem;border-radius:0.25rem;font-size:0.7rem;font-weight:bold;letter-spacing:0.05em}
+.source-badge.true{background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3)}
+.source-badge.false{background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3)}
+.source-badge.unrated{background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3)}
+.source-link{color:var(--cyan);text-decoration:none;margin-left:0.5rem}
+.source-link:hover{text-decoration:underline}
+
+/* Custom Interactive Line Graph Styles */
+/* Premium Interactive Line Graph Styles */
+/* Premium Interactive Line Graph Styles (Theme-Adaptive) */
+#interactive-timeline { 
+  position: relative; width: 100%; height: 400px; margin-top: 1rem; overflow: visible; 
+  /* Theme-adaptive dotted grid background */
+  background-color: var(--surface2);
+  background-image: radial-gradient(var(--border) 1.5px, transparent 1.5px);
+  background-size: 25px 25px;
+  border-radius: 1rem; border: 1px solid var(--border); 
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+}
+
+.dt-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.dt-svg line {
+  stroke: var(--border); stroke-width: 2.5px;
+  stroke-dasharray: 6, 6;
+}
+
+.dt-node { position: absolute; transform: translate(-50%, -50%); z-index: 2; text-decoration: none; display: flex; justify-content: center; align-items: center; }
+
+/* Subtle pulse animation for prominence */
+@keyframes nodePulse {
+  0% { box-shadow: 0 0 0 0 var(--n-bg); }
+  70% { box-shadow: 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Larger, Glowing Datapoints */
+.dt-point { 
+  width: 20px; height: 20px; border-radius: 50%; 
+  background: var(--surface); border: 4px solid var(--n-color); 
+  animation: nodePulse 2s infinite;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 3; 
+}
+.dt-node:hover .dt-point { 
+  transform: scale(1.2); background: var(--n-color); 
+  box-shadow: 0 0 20px var(--n-color); animation: none;
+}
+
+/* Theme-Adaptive Floating Labels */
+.dt-floating-label {
+  position: absolute; top: -35px; white-space: nowrap;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text); 
+  background: var(--surface); padding: 5px 12px; border-radius: 20px; 
+  border: 1px solid var(--border); 
+  pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  z-index: 4;
+}
+.dt-node.high .dt-floating-label { top: auto; bottom: -35px; }
+
+/* Theme-Adaptive Tooltip */
+.dt-box { 
+  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(10px); 
+  background: var(--surface); border: 1px solid var(--border); 
+  border-top: 3px solid var(--n-color); padding: 14px; border-radius: 12px; text-align: left; 
+  box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+  opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+  width: 250px; pointer-events: none; z-index: 10; 
+}
+.dt-node.high .dt-box { bottom: auto; top: 40px; transform: translateX(-50%) translateY(-10px); border-top: 1px solid var(--border); border-bottom: 3px solid var(--n-color); }
+.dt-node:hover .dt-box { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+
+.dt-rating { font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 800; color: var(--n-color); margin-bottom: 8px; letter-spacing: 0.1em; display: flex; align-items: center; gap: 6px; }
+.dt-rating::before { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--n-color); box-shadow: 0 0 5px var(--n-color); }
+.dt-text { font-family: 'Rajdhani', sans-serif; font-size: 0.95rem; color: var(--text2); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<canvas id="bg-canvas"></canvas>
+
+<button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+  <span class="toggle-icon" id="toggle-icon">🌙</span>
+  <div class="toggle-track"><div class="toggle-thumb"></div></div>
+  <span id="toggle-label">DARK</span>
+</button>
+
+<nav>
+  <a class="nav-logo" href="/index">TRACE<span>NET</span></a>
+  <div class="nav-links">
+    <a href="/index">Home</a>
+    <a href="/howto">How to Use</a>
+    <a href="/misinfo" class="active">Misinfo Detection</a>
+    <a href="/ai_detection">AI Detection</a>
+    <a href="/privacy">World Map</a>
+  </div>
+  <div class="nav-status"><span class="status-dot"></span>SYSTEM ONLINE · v2.4.1</div>
+</nav>
+
+<div class="page-content">
+  <section id="misinfo">
+    <p class="eyebrow reveal">FACT-CHECK</p>
+    <h1 class="section-title reveal">Misinformation Detection</h1>
+    <p class="section-sub reveal">Paste a URL or article text — our ML pipeline will classify it in seconds</p>
+
+    <div class="input-box reveal">
+      <div class="input-mode-bar">
+        <button class="input-mode-btn active" id="mode-claim" onclick="setInputMode('claim')">📄 TEXT CLAIM</button>
+        <button class="input-mode-btn" id="mode-url" onclick="setInputMode('url')">🔗 URL</button>
+      </div>
+
+      <div id="claim-panel">
+        <textarea class="text-area" id="text-input" placeholder="Paste a headline or article text to fact-check..." oninput="updateCharCount(this)"></textarea>
+      </div>
+      <div id="url-panel" style="display:none">
+        <div class="url-row">
+          <span class="url-icon">🔗</span>
+          <input class="url-input" id="url-input" type="url" placeholder="https://indianexpress.com/article..." oninput="updateCharCount(this)" />
+        </div>
+      </div>
+
+      <div class="input-bottom">
+        <span class="char-count" id="char-count">0 characters</span>
+        <div class="input-actions">
+          <button class="btn-clear" onclick="clearInputs()">✕ CLEAR</button>
+          <button class="btn-primary" id="check-btn" onclick="runMisinfoCheck()">⚡ CHECK NOW</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="examples reveal">
+      <span class="example-chip" onclick="fillExample('Scientists confirm miracle cure reverses aging in 100% of patients after leaked study', 'claim')">📄 Fake example</span>
+      <span class="example-chip" onclick="fillExample('According to Reuters, researchers published peer-reviewed findings on climate data', 'claim')">📄 Real example</span>
+      <span class="example-chip" onclick="fillExample('https://indianexpress.com/article/world/donald-trump-iran-threat-strait-of-hormuz-kharg-island-oil-exports-10619185/', 'url')">🔗 URL example</span>
+    </div>
+
+    <div id="processing">
+      <div class="proc-line" id="pl-0">Initializing pipeline...</div>
+      <div class="proc-line" id="pl-1">Tokenizing and cleaning input text...</div>
+      <div class="proc-line" id="pl-2">Extracting 847 linguistic features...</div>
+      <div class="proc-line" id="pl-3">Computing TF-IDF vectors...</div>
+      <div class="proc-line" id="pl-4">Loading ensemble classifier (v2.4.1)...</div>
+      <div class="proc-line" id="pl-5">Running inference on 4 models...</div>
+      <div class="proc-line" id="pl-6">Aggregating predictions...</div>
+      <div class="proc-line" id="pl-7">Analysis complete.</div>
+    </div>
+
+    <div id="result-banner">
+      <div class="rb-icon" id="rb-icon"></div>
+      <div>
+        <div class="rb-verdict" id="rb-verdict"></div>
+        <div class="rb-conf" id="rb-conf"></div>
+        <div class="rb-desc" id="rb-desc"></div>
+        <div class="rb-actions">
+          <button class="rb-btn" onclick="downloadMisinfoJson()"> EXPORT JSON</button>
+          <button class="rb-btn" onclick="clearInputs()">↺ NEW CHECK</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="timeline-wrap" class="chart-wrap">
+      <div class="chart-title">▸ DATA PROPAGATION TIMELINE</div>
+      <div id="interactive-timeline"></div>
+    </div>
+
+    <div id="reasons-wrap">
+      <div class="reasons-col" id="reasons-fake-col">
+        <div class="reasons-col-title fake">⚠ WHY MAY BE INCORRECT</div>
+        <div id="reasons-fake-list"></div>
+      </div>
+      <div class="reasons-col" id="reasons-real-col">
+        <div class="reasons-col-title real">✓ CREDIBILITY SIGNALS</div>
+        <div id="reasons-real-list"></div>
+      </div>
+    </div>
+
+    <div id="sources-wrap" class="chart-wrap">
+      <div class="chart-title">▸ EVIDENCE SOURCES</div>
+      <div id="sources-list"></div>
+    </div>
+
+  </section>
+
+  <footer>
+    <div class="f-logo">TRACE<span style="color:var(--blue)">NET</span></div>
+    <div class="f-copy">ML-POWERED MISINFORMATION DETECTION</div>
+  </footer>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+applyStoredTheme();
+if (typeof initCursor === 'function') initCursor();
+if (typeof initBgCanvas === 'function') initBgCanvas();
+if (typeof initScrollReveal === 'function') initScrollReveal();
+
+let lastResult = null;
+let currentMode = 'claim';
+
+function setInputMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-claim').classList.remove('active');
+  document.getElementById('mode-url').classList.remove('active');
+  document.getElementById('mode-' + mode).classList.add('active');
+  document.getElementById('claim-panel').style.display = mode === 'claim' ? 'block' : 'none';
+  document.getElementById('url-panel').style.display = mode === 'url' ? 'block' : 'none';
+  document.getElementById('char-count').textContent = '0 characters';
+}
+
+function updateCharCount(el) {
+  document.getElementById('char-count').textContent = el.value.length + ' characters';
+}
+
+function fillExample(text, mode) {
+  setInputMode(mode);
+  if(mode === 'url') {
+    const inp = document.getElementById('url-input');
+    inp.value = text;
+    updateCharCount(inp);
+    inp.focus();
+  } else {
+    const ta = document.getElementById('text-input');
+    ta.value = text;
+    updateCharCount(ta);
+    ta.focus();
+  }
+}
+
+function clearInputs() {
+  document.getElementById('url-input').value = '';
+  document.getElementById('text-input').value = '';
+  document.getElementById('char-count').textContent = '0 characters';
+  document.getElementById('processing').classList.remove('active');
+  
+  const rb = document.getElementById('result-banner');
+  rb.className = '';
+  rb.style.display = 'none';
+
+  document.getElementById('timeline-wrap').classList.remove('active');
+  document.getElementById('sources-wrap').classList.remove('active');
+  document.getElementById('reasons-wrap').classList.remove('active');
+  
+  lastResult = null;
+}
+
+function runMisinfoCheck() {
+  const url  = document.getElementById('url-input').value.trim();
+  const text = document.getElementById('text-input').value.trim();
+
+  if (currentMode === 'url' && !url) return highlightError('url-input');
+  if (currentMode === 'claim' && !text) return highlightError('text-input');
+
+  const btn  = document.getElementById('check-btn');
+  const proc = document.getElementById('processing');
+  btn.disabled = true;
+  btn.textContent = '⏳ ANALYZING...';
+  if (typeof showLoader === 'function') showLoader('Analyzing content...');
+  
+  proc.classList.add('active');
+  document.getElementById('result-banner').style.display = 'none';
+  document.getElementById('timeline-wrap').classList.remove('active');
+  document.getElementById('sources-wrap').classList.remove('active');
+  document.getElementById('reasons-wrap').classList.remove('active');
+
+  for (let i = 0; i < 8; i++) {
+    const l = document.getElementById('pl-' + i);
+    if (l) l.classList.remove('show', 'done');
+  }
+
+  let li = 0;
+  const intv = setInterval(() => {
+    if (li > 0) { const prev = document.getElementById('pl-' + (li - 1)); if (prev) prev.classList.add('done'); }
+    if (li < 8) { const el = document.getElementById('pl-' + li); if (el) el.classList.add('show'); }
+    li++;
+    if (li >= 8) clearInterval(intv);
+  }, 300);
+
+  const formData = new FormData();
+  if (currentMode === 'url') {
+    formData.append('type', 'url');
+    formData.append('content', url);
+  } else {
+    formData.append('type', 'text');
+    formData.append('content', text);
+  }
+
+  fetch('/process', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      clearInterval(intv);
+      for (let i = 0; i < 8; i++) {
+        const l = document.getElementById('pl-' + i);
+        if (l) { l.classList.add('show', 'done'); }
+      }
+      if (typeof hideLoader === 'function') hideLoader();
+      btn.disabled = false;
+      btn.textContent = '⚡ CHECK NOW';
+      if (data.error) { showResultError(data.error); return; }
+      
+      lastResult = data;
+      showResult(data);
+      renderTimeline(data);
+      renderReasons(data);
+      renderSources(data);
+    })
+    .catch(err => {
+      clearInterval(intv);
+      if (typeof hideLoader === 'function') hideLoader();
+      btn.disabled = false;
+      btn.textContent = '⚡ CHECK NOW';
+      showResultError('Network error: ' + err.message);
+    });
+}
+
+function highlightError(id) {
+  const el = document.getElementById(id);
+  el.style.outline = '1px solid var(--red)';
+  setTimeout(() => { el.style.outline = ''; }, 1800);
+}
+
+function showResultError(msg) {
+  const banner = document.getElementById('result-banner');
+  banner.className = 'active fake';
+  banner.style.display = '';
+  document.getElementById('rb-icon').textContent = '❌';
+  const vEl = document.getElementById('rb-verdict');
+  vEl.textContent = 'ERROR'; vEl.className = 'rb-verdict fake';
+  document.getElementById('rb-conf').textContent = '';
+  document.getElementById('rb-desc').textContent = msg;
+}
+
+function showResult(data) {
+  const isFake = data.is_fake || false;
+  const conf   = data.score   || 0;
+  const banner = document.getElementById('result-banner');
+  banner.className = 'active ' + (isFake ? 'fake' : 'real');
+  banner.style.display = '';
+
+  document.getElementById('rb-icon').textContent = isFake ? '⚠️' : '✓';
+  const vEl = document.getElementById('rb-verdict');
+  vEl.textContent  = isFake ? 'LIKELY MISINFORMATION' : 'APPEARS CREDIBLE';
+  vEl.className    = 'rb-verdict ' + (isFake ? 'fake' : 'real');
+
+  const mlFake = data.ml_fake_prob != null ? data.ml_fake_prob : conf;
+  const mlReal = data.ml_real_prob != null ? data.ml_real_prob : (100 - conf);
+  document.getElementById('rb-conf').textContent =
+    'Confidence: ' + conf + '%  ·  Prediction Real: ' + mlFake + '%  ·  Prediction Fake: ' + mlReal + '%';
+
+  const keyEv = Array.isArray(data.key_evidence) && data.key_evidence.length
+    ? data.key_evidence.join(' · ')
+    : (data.reasoning || (isFake
+        ? 'Detected misinformation signals: sensationalist framing, unverified claims.'
+        : 'Text uses factual structure consistent with reliable reporting.'));
+  document.getElementById('rb-desc').textContent = keyEv;
+  banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderTimeline(data) {
+  const wrap = document.getElementById('timeline-wrap');
+  const container = document.getElementById('interactive-timeline');
+
+  const sources = Array.isArray(data.sources) ? data.sources : [];
+  const factClaims = Array.isArray(data.fact_claims) ? data.fact_claims : [];
+  const news = Array.isArray(data.related_news) ? data.related_news : [];
+
+  let nodes = [];
+  
+  sources.forEach(s => { if(s.url) nodes.push({...s, type: 'source'}); });
+  if(!nodes.length) {
+      factClaims.forEach(fc => { if(fc.url) nodes.push({label: fc.publisher, url: fc.url, text: fc.text, rating: fc.rating, is_false: fc.is_false, is_true: fc.is_true, date: fc.date, type: 'fact'}); });
+  }
+  news.forEach(n => { if(n.link) nodes.push({label: n.source, url: n.link, text: n.title, rating: 'NEWS', is_true: true, date: n.date, type: 'news'}); });
+
+  if (!nodes.length) {
+    wrap.classList.remove('active');
+    return;
+  }
+
+  wrap.classList.add('active');
+
+  let htmlNodes = '';
+  let svgLines = '';
+  let prevX = null;
+  let prevY = null;
+
+  nodes.forEach((node, i) => {
+    const isFalse = node.is_false || (node.rating && node.rating.toUpperCase() === 'FALSE');
+    const color = isFalse ? '#f87171' : (node.is_true ? '#34d399' : '#06b6d4');
+    const bg = isFalse ? 'rgba(248,113,113,0.3)' : (node.is_true ? 'rgba(52,211,153,0.3)' : 'rgba(6,182,212,0.3)');
+    const nodeRating = (node.rating || 'LINK').toUpperCase();
+    
+    // Spread X linearly, keeping it away from the extreme edges
+    const xPercent = 10 + (80 / (nodes.length > 1 ? nodes.length - 1 : 1)) * i;
+    
+    // Randomize Y up and down, keeping it between 25% and 75% height
+    const yPercent = 25 + Math.random() * 50; 
+
+    // If point is high up, apply class to flip label/tooltip downwards
+    const positionClass = yPercent < 40 ? 'high' : ''; 
+    
+    // Check if date exists, otherwise fallback to just the label
+    const displayLabel = node.date ? `${node.label} · ${node.date}` : (node.label || 'Source');
+
+    // Draw connecting dashed line
+    if (prevX !== null && prevY !== null) {
+      svgLines += `<line x1="${prevX}%" y1="${prevY}%" x2="${xPercent}%" y2="${yPercent}%" />`;
+    }
+    
+    prevX = xPercent;
+    prevY = yPercent;
+
+    htmlNodes += `
+      <a href="${node.url}" target="_blank" class="dt-node ${positionClass}" style="left: ${xPercent}%; top: ${yPercent}%; --n-color: ${color}; --n-bg: ${bg};">
+        <div class="dt-floating-label">${displayLabel}</div>
+        <div class="dt-point"></div>
+        <div class="dt-box">
+          <div class="dt-rating">${nodeRating}</div>
+          <div class="dt-text">${(node.text || displayLabel).replace(/"/g, '&quot;')}</div>
+        </div>
+      </a>
+    `;
+  });
+
+  const svgLayer = `<svg class="dt-svg" width="100%" height="100%">${svgLines}</svg>`;
+  container.innerHTML = svgLayer + htmlNodes;
+}
+
+function renderReasons(data) {
+  const wrap = document.getElementById('reasons-wrap');
+  const fakeList = document.getElementById('reasons-fake-list');
+  const realList = document.getElementById('reasons-real-list');
+
+  const fakeReasons = Array.isArray(data.reasons_fake) && data.reasons_fake.length ? data.reasons_fake : [];
+  const realReasons = Array.isArray(data.reasons_real) && data.reasons_real.length ? data.reasons_real : [];
+
+  fakeList.innerHTML = fakeReasons.length
+    ? fakeReasons.map(r => `<div class="reason-item">⚠ ${r}</div>`).join('')
+    : '<div class="reason-item" style="color:var(--green)">No major fake signals detected.</div>';
+
+  realList.innerHTML = realReasons.length
+    ? realReasons.map(r => `<div class="reason-item">✓ ${r}</div>`).join('')
+    : '<div class="reason-item" style="color:var(--red)">No strong credibility signals found.</div>';
+
+  wrap.classList.add('active');
+}
+
+function renderSources(data) {
+  const sources = Array.isArray(data.sources) ? data.sources : [];
+  const factClaims = Array.isArray(data.fact_claims) ? data.fact_claims : [];
+  const allSources = sources.length ? sources : factClaims.map(fc => ({
+    label: fc.publisher || "Fact Checker", rating: fc.rating || "Unrated", url: fc.url || "",
+    is_false: fc.is_false || false, is_true: fc.is_true || false, text: (fc.text || "").substring(0, 120)
+  }));
+
+  const news = Array.isArray(data.related_news) ? data.related_news : [];
+  news.slice(0, 3).forEach(n => {
+    allSources.push({ label: n.source, rating: "NEWS", url: n.link, is_false: false, is_true: true, text: n.title });
+  });
+
+  if (!allSources.length) return;
+
+  const wrap = document.getElementById('sources-wrap');
+  const list = document.getElementById('sources-list');
+  wrap.classList.add('active');
+
+  list.innerHTML = allSources.map(s => {
+    const badgeCls = s.rating === "NEWS" ? 'true' : (s.is_false ? 'false' : s.is_true ? 'true' : 'unrated');
+    const badgeTxt = s.rating || 'Unrated';
+    const linkHtml = s.url ? `<a class="source-link" href="${s.url}" target="_blank">↗ Source</a>` : '';
+    return `<div class="source-item"><span class="source-badge ${badgeCls}">${badgeTxt}</span><div class="source-text">${s.text}${linkHtml}</div></div>`;
+  }).join('');
+}
+
+function downloadMisinfoJson() {
+  if (!lastResult) return;
+  const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tracenet_result.json';
+  a.click();
+}
+</script>
+</body>
+</html>

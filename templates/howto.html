@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TraceNet — How to Use</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ═══ WELCOME ═══ */
+#welcome{min-height:60vh;display:flex;align-items:center;justify-content:center;padding:8rem 2rem 4rem;flex-direction:column;text-align:center}
+.welcome-title{font-family:'Orbitron',monospace;font-size:clamp(2.2rem,5vw,3.8rem);font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,var(--blue),var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:1.2rem}
+.welcome-desc{font-size:clamp(1.05rem,2vw,1.25rem);color:var(--text2);max-width:680px;line-height:1.8;font-weight:300;margin-bottom:2.5rem}
+.welcome-steps{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;margin-top:1rem;max-width:900px;width:100%}
+.wstep{flex:1;min-width:180px;max-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:1.4rem;display:flex;flex-direction:column;gap:.5rem;transition:border-color .3s,transform .3s}
+.wstep:hover{border-color:var(--cyan);transform:translateY(-4px)}
+.wstep-num{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;color:rgba(6,182,212,.2);line-height:1}
+.wstep-icon{font-size:1.3rem}
+.wstep-title{font-family:'Orbitron',monospace;font-size:.88rem;font-weight:700;letter-spacing:.1em;color:var(--cyan)}
+.wstep-desc{font-size:1rem;color:var(--muted);line-height:1.55;font-weight:300}
+
+/* ═══ PIPELINE ═══ */
+#pipeline{padding:7rem 2rem;background:linear-gradient(180deg,transparent,rgba(59,130,246,.04) 50%,transparent)}
+.pipeline-title{font-family:'Orbitron',monospace;font-size:clamp(2rem,4vw,3rem);text-align:center;letter-spacing:.1em;margin-bottom:.8rem;background:linear-gradient(90deg,var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+.pipeline-sub{text-align:center;color:var(--muted);font-size:1.1rem;letter-spacing:.05em;margin-bottom:5rem;font-weight:300}
+.pipeline-flow{display:flex;align-items:stretch;justify-content:center;gap:0;flex-wrap:wrap;max-width:1200px;margin:0 auto}
+.pipeline-stage{background:var(--surface);border:1px solid var(--border);border-radius:.75rem;padding:2rem 1.5rem;width:200px;min-height:260px;flex-shrink:0;position:relative;transition:transform .4s,box-shadow .4s,border-color .4s;cursor:default}
+.pipeline-stage:hover{transform:translateY(-8px);box-shadow:var(--glow-blue);border-color:var(--blue)}
+.pipeline-stage.purple:hover{box-shadow:var(--glow-purple);border-color:var(--purple)}
+.pipeline-stage.cyan:hover{box-shadow:var(--glow-cyan);border-color:var(--cyan)}
+.stage-num{font-family:'Orbitron',monospace;font-size:3rem;font-weight:900;color:rgba(59,130,246,.12);position:absolute;top:1rem;right:1rem;line-height:1}
+.stage-icon{font-size:1.8rem;margin-bottom:1rem}
+.stage-title{font-family:'Orbitron',monospace;font-size:.92rem;font-weight:700;letter-spacing:.12em;color:var(--blue);text-transform:uppercase;margin-bottom:.6rem}
+.pipeline-stage.purple .stage-title{color:var(--purple)}
+.pipeline-stage.cyan .stage-title{color:var(--cyan)}
+.stage-desc{font-size:1rem;color:var(--muted);line-height:1.65;font-weight:300}
+.stage-mini{margin-top:1.2rem}
+.stage-token{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.72rem;padding:.15rem .45rem;border-radius:.25rem;margin:.15rem;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--blue)}
+.stage-token.pur{background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.2);color:var(--purple)}
+.stage-token.cy{background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.2);color:var(--cyan)}
+.stage-vec{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--muted);margin-top:.3rem;line-height:1.5}
+.pipeline-arrow{display:flex;align-items:center;justify-content:center;width:44px;flex-shrink:0;position:relative}
+.pipeline-arrow::before{content:'';position:absolute;width:44px;height:2px;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+.pipeline-arrow::after{content:'▶';color:var(--cyan);font-size:.7rem}
+.pipeline-arrow span{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:flowDot 2s linear infinite;left:0}
+@keyframes flowDot{from{left:0;opacity:1}to{left:38px;opacity:0}}
+
+/* ═══ CTA ═══ */
+#cta{padding:5rem 2rem;display:flex;flex-direction:column;align-items:center;text-align:center}
+.cta-title{font-family:'Orbitron',monospace;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:.1em;color:var(--text);margin-bottom:1rem}
+.cta-sub{color:var(--muted);font-size:1.1rem;margin-bottom:2.5rem;max-width:500px}
+.cta-btns{display:flex;gap:1.2rem;flex-wrap:wrap;justify-content:center}
+
+@media(max-width:768px){
+  .pipeline-arrow{display:none}
+  .pipeline-flow{gap:1rem}
+  .pipeline-stage{width:100%;max-width:340px}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<canvas id="bg-canvas"></canvas>
+
+<button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+  <span class="toggle-icon" id="toggle-icon">🌙</span>
+  <div class="toggle-track"><div class="toggle-thumb"></div></div>
+  <span id="toggle-label">DARK</span>
+</button>
+
+<nav>
+  <a class="nav-logo" href="/index">TRACE<span>NET</span></a>
+  <div class="nav-links">
+    <a href="/index">Home</a>
+    <a href="/howto" class="active">How to Use</a>
+    <a href="/misinfo">Misinfo Detection</a>
+    <a href="/ai_detection">AI Detection</a>
+    <a href="/privacy">World Map</a>
+  </div>
+  <div class="nav-status"><span class="status-dot"></span>SYSTEM ONLINE</div>
+</nav>
+
+<div class="page-content">
+
+  <!-- WELCOME -->
+  <section id="welcome">
+    <p class="eyebrow reveal">GETTING STARTED</p>
+    <h1 class="welcome-title reveal">How to Use TraceNet</h1>
+    <p class="welcome-desc reveal">
+      TraceNet is an ML-powered platform for detecting misinformation and AI-generated content.
+      It's fast, private, and requires no signup. Simply choose a detection tool, provide your input,
+      and receive a detailed analysis in seconds.
+    </p>
+    <div class="welcome-steps">
+      <div class="wstep reveal">
+        <div class="wstep-num">01</div>
+        <div class="wstep-icon"></div>
+        <div class="wstep-title">Choose a Tool</div>
+        <div class="wstep-desc">Select Misinfo Detection for text/URLs or AI Detection for images, videos, and files.</div>
+      </div>
+      <div class="wstep reveal" style="transition-delay:.1s">
+        <div class="wstep-num">02</div>
+        <div class="wstep-icon"></div>
+        <div class="wstep-title">Provide Input</div>
+        <div class="wstep-desc">Paste a URL, enter article text, or upload a media file depending on the tool.</div>
+      </div>
+      <div class="wstep reveal" style="transition-delay:.2s">
+        <div class="wstep-num">03</div>
+        <div class="wstep-icon"></div>
+        <div class="wstep-title">Run Analysis</div>
+        <div class="wstep-desc">Click the analyze button. The ML pipeline processes your input instantly.</div>
+      </div>
+      <div class="wstep reveal" style="transition-delay:.3s">
+        <div class="wstep-num">04</div>
+        <div class="wstep-icon"></div>
+        <div class="wstep-title">Read Results</div>
+        <div class="wstep-desc">View the verdict, confidence score, feature breakdown, and source report.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section id="pipeline">
+    <h2 class="pipeline-title reveal">How TraceNet Works</h2>
+    <p class="pipeline-sub reveal">The machine learning pipeline that powers truth detection</p>
+    <div class="pipeline-flow">
+      <div class="pipeline-stage reveal">
+        <div class="stage-num">01</div><div class="stage-icon"> </div><br>
+        <div class="stage-title">News Input</div>
+        <div class="stage-desc">Raw article text or headline is submitted via URL, paste, or API call.</div>
+        <div class="stage-mini"><span class="stage-token">headline</span><span class="stage-token">body</span><span class="stage-token">source</span><span class="stage-token">date</span></div>
+      </div>
+      <div class="pipeline-arrow"><span></span></div>
+      <div class="pipeline-stage reveal" style="transition-delay:.1s">
+        <div class="stage-num">02</div><div class="stage-icon"> </div><br>
+        <div class="stage-title">Preprocessing</div>
+        <div class="stage-desc">Text is cleaned, normalized, stopwords removed, and sentences parsed.</div>
+        <div class="stage-mini"><span class="stage-token pur">lowercase</span><span class="stage-token pur">strip HTML</span><span class="stage-token pur">tokenize</span><span class="stage-token pur">lemmatize</span></div>
+      </div>
+      <div class="pipeline-arrow"><span></span></div>
+      <div class="pipeline-stage purple reveal" style="transition-delay:.2s">
+        <div class="stage-num">03</div><div class="stage-icon"> </div><br>
+        <div class="stage-title">Feature Extraction</div>
+        <div class="stage-desc">TF-IDF vectors, sentiment scores, readability index, and source credibility metrics.</div>
+        <div class="stage-mini"><div class="stage-vec">[0.82, 0.14, 0.97, 0.03,<br>0.61, 0.42, 0.19, 0.88...]</div></div>
+      </div>
+      <div class="pipeline-arrow"><span></span></div>
+      <div class="pipeline-stage purple reveal" style="transition-delay:.3s">
+        <div class="stage-num">04</div><div class="stage-icon"> </div><br>
+        <div class="stage-title">ML Classifier</div>
+        <div class="stage-desc">Gradient Boosting ensemble with Passive Aggressive, Logistic Regression, and Naive Bayes.</div>
+        <div class="stage-mini"><span class="stage-token pur">GBM</span><span class="stage-token pur">PAC</span><span class="stage-token pur">LR</span><span class="stage-token pur">NB</span></div>
+      </div>
+      <div class="pipeline-arrow"><span></span></div>
+      <div class="pipeline-stage cyan reveal" style="transition-delay:.4s">
+        <div class="stage-num">05</div><div class="stage-icon"> </div><br>
+        <div class="stage-title">Prediction</div>
+        <div class="stage-desc">Final verdict with confidence score and key feature attribution for explainability.</div>
+        <div class="stage-mini"><span class="stage-token cy">REAL 94%</span><span class="stage-token cy">FAKE 06%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="cta">
+    <h2 class="cta-title reveal">Ready to get started?</h2>
+    <p class="cta-sub reveal">Choose a detection tool and run your first analysis now.</p>
+    <div class="cta-btns reveal">
+      <a href="/misinfo"><button class="btn-primary">📰 Misinfo Detection</button></a>
+      <a href="/ai_detection"><button class="btn-outline">🤖 AI Detection</button></a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="f-logo">TRACE<span style="color:var(--blue)">NET</span></div>
+    <div class="f-copy">ML-POWERED MISINFORMATION DETECTION · SKLEARN · THREE.JS</div>
+    <div class="f-copy">© 2026 TRACENET PROJECT</div>
+  </footer>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+if (typeof applyStoredTheme === 'function') applyStoredTheme();
+if (typeof initCursor       === 'function') initCursor();
+if (typeof initBgCanvas     === 'function') initBgCanvas();
+if (typeof initScrollReveal === 'function') initScrollReveal();
+</script>
+</body>
+</html>

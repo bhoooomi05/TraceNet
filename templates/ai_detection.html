@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TraceNet — AI Detection</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+#ai_detection{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:8rem 2rem 5rem;flex-direction:column}
+/* Spatial Analysis Styles */
+.spatial-wrap { width:100%; margin-top: 1.5rem; border-top: 1px dashed rgba(6,182,212,.3); padding-top: 1.5rem; display: none; }
+.spatial-img { width: 100%; height: auto; border-radius: .5rem; border: 1px solid rgba(6,182,212,.3); background: #000; }
+.spatial-desc { background: rgba(255,255,255,.02); border-radius: .5rem; padding: 1.2rem; margin-top: 1rem; border: 1px solid var(--border); }
+.spatial-desc h4 { font-family: 'Orbitron', monospace; font-size: .95rem; color: var(--cyan); margin-bottom: .8rem; letter-spacing: .05em; }
+.spatial-desc ul { margin-left: 1.2rem; color: var(--text2); font-size: .9rem; line-height: 1.6; }
+.spatial-desc li { margin-bottom: .5rem; }
+.spatial-desc strong { color: #e2e8f0; font-family: 'Share Tech Mono', monospace; }
+[data-theme="light"] .spatial-desc strong { color: #0f172a; }
+/* Upload grid */
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;max-width:780px;width:100%;margin-bottom:1.5rem}
+.upload-zone{background:var(--surface);border:2px dashed var(--border);border-radius:1rem;padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;gap:.8rem;cursor:pointer;transition:all .3s;text-align:center;position:relative;overflow:hidden;min-height:160px;justify-content:center}
+.upload-zone:hover,.upload-zone.has-file{border-color:var(--cyan);background:rgba(6,182,212,.04)}
+.upload-zone.has-file{border-style:solid}
+.upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2}
+.uz-icon{font-size:2.2rem;pointer-events:none}
+.uz-title{font-family:'Orbitron',monospace;font-size:.92rem;font-weight:700;letter-spacing:.12em;color:var(--cyan);pointer-events:none}
+.uz-hint{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--muted);letter-spacing:.08em;pointer-events:none}
+.uz-filename{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--green);letter-spacing:.08em;margin-top:.3rem;word-break:break-all;pointer-events:none;display:none}
+.upload-zone.has-file .uz-filename{display:block}
+.upload-zone.has-file .uz-hint{display:none}
+
+/* Video preview inside zone */
+#video-preview-wrap{display:none;width:100%;pointer-events:none;flex-direction:column;align-items:center;gap:.5rem}
+.upload-zone.has-file #video-preview-wrap{display:flex}
+#image-preview-wrap{display:none;width:100%;pointer-events:none;flex-direction:column;align-items:center;gap:.5rem}
+.upload-zone.has-file #image-preview-wrap{display:flex}
+.upload-zone.has-file .uz-icon,.upload-zone.has-file .uz-title{display:none}
+#video-preview{
+  width:100%;max-height:160px;border-radius:.5rem;
+  object-fit:cover;border:1px solid rgba(6,182,212,.3);
+  background:#000;
+}
+#image-preview{
+  width:100%;max-height:160px;border-radius:.5rem;
+  object-fit:contain;border:1px solid rgba(6,182,212,.3);
+  background:rgba(0,0,0,.4);
+}
+.vp-name{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--green);letter-spacing:.06em;text-align:center;word-break:break-all}
+
+/* URL Input */
+.url-wrap {
+  display: flex; align-items: center; background: rgba(255,255,255,.02);
+  border: 1px solid var(--border); border-radius: .75rem;
+  padding: .9rem 1.2rem; max-width: 780px; width: 100%;
+  margin-bottom: 1.5rem; transition: border-color .2s, box-shadow .2s;
+}
+.url-wrap.has-url, .url-wrap:focus-within {
+  border-color: var(--cyan); background: rgba(6,182,212,.04);
+}
+.url-icon { font-size: 1.4rem; margin-right: .8rem; opacity: 0.9; }
+.url-input {
+  flex: 1; background: transparent; border: none; color: #e2e8f0;
+  font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; outline: none;
+}
+.url-input::placeholder { color: var(--muted); }
+[data-theme="light"] .url-input { color: #0f172a; }
+
+/* File list */
+#file-list{width:100%;max-width:780px;display:none;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+#file-list.has-files{display:flex}.file-item{display:flex;align-items:center;gap:.8rem;background:var(--surface);border:1px solid var(--border);border-radius:.5rem;padding:.6rem 1rem}
+.fi-icon{font-size:1.1rem;flex-shrink:0}
+.fi-name{flex:1;font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--text2);letter-spacing:.05em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fi-size{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--muted)}
+.fi-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;padding:0;transition:color .2s;flex-shrink:0}
+.fi-remove:hover{color:var(--red)}
+
+/* Action row */
+.action-row{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center;max-width:780px;width:100%}
+.btn-clear-all{
+  background:rgba(100,116,139,0.18);
+  border:2px solid #64748b;
+  color:#94a3b8;
+  font-family:'Share Tech Mono',monospace;font-size:.78rem;letter-spacing:.1em;
+  padding:.6rem 1.4rem;border-radius:.35rem;cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s,transform .1s;
+}
+.btn-clear-all:hover{background:rgba(248,113,113,0.2);border-color:#f87171;color:#f87171;}
+.btn-clear-all:active{background:rgba(248,113,113,0.38);border-color:#ef4444;color:#ef4444;transform:scale(.96);}
+
+/* Processing */
+#ai-processing{width:100%;max-width:780px;margin-top:1.5rem;display:none;border:1px solid var(--border);border-radius:.75rem;padding:1.5rem;background:var(--surface2)}
+#ai-processing.active{display:block;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.proc-line{font-family:'Share Tech Mono',monospace;font-size:.85rem;letter-spacing:.08em;color:var(--muted);padding:.4rem 0;opacity:0;transition:opacity .4s;display:flex;align-items:center;gap:.6rem}
+.proc-line.show{opacity:1}
+.proc-line.done{color:var(--green)}
+.proc-line::before{content:'>';color:var(--purple)}
+
+/* Result */
+#ai-result{width:100%;max-width:780px;margin-top:1.2rem;display:none;border-radius:.75rem;padding:1.5rem 2rem;position:relative;overflow:hidden}
+#ai-result.active{display:flex;align-items:flex-start;gap:1.5rem;animation:fadeIn .5s ease;flex-wrap:wrap}
+#ai-result.ai-detected{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3)}
+#ai-result.ai-clean{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3)}
+.ar-icon{font-size:2.5rem;flex-shrink:0}
+.ar-verdict{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;letter-spacing:.12em}
+.ar-verdict.ai-detected{color:var(--red)}
+.ar-verdict.ai-clean{color:var(--green)}
+.ar-conf{font-family:'Share Tech Mono',monospace;font-size:.88rem;color:var(--muted);margin-top:.3rem;letter-spacing:.1em}
+.ar-desc{font-size:1.05rem;color:var(--text2);line-height:1.6;margin-top:.5rem}
+.ar-tags{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}
+.ar-tag{font-family:'Share Tech Mono',monospace;font-size:.75rem;padding:.25rem .7rem;border-radius:.25rem;border:1px solid}
+.ar-tag.neg{color:var(--red);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08)}
+.ar-tag.pos{color:var(--green);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+.ar-actions{margin-top:1rem;display:flex;gap:.8rem;flex-wrap:wrap}
+.ar-btn{
+  font-family:'Share Tech Mono',monospace;font-size:.78rem;letter-spacing:.12em;
+  padding:.55rem 1.2rem;border-radius:.35rem;cursor:pointer;
+  border:2px solid rgba(59,130,246,0.35);
+  background:rgba(59,130,246,0.12);
+  color:#94a3b8;
+  transition:background .15s,border-color .15s,color .15s,transform .1s;
+}
+.ar-btn:hover{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.22);}
+.ar-btn:active{border-color:#0891b2;color:#fff;background:rgba(6,182,212,0.42);transform:scale(.96);}
+
+/* Supported formats note */
+.formats-note{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--muted);letter-spacing:.08em;text-align:center;margin-top:.8rem;max-width:780px}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+<canvas id="bg-canvas"></canvas>
+
+<button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+  <span class="toggle-icon" id="toggle-icon">🌙</span>
+  <div class="toggle-track"><div class="toggle-thumb"></div></div>
+  <span id="toggle-label">DARK</span>
+</button>
+
+<nav>
+  <a class="nav-logo" href="/index">TRACE<span>NET</span></a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/howto">How to Use</a>
+    <a href="/misinfo">Misinfo Detection</a>
+    <a href="/ai_detection" class="active">AI Detection</a>
+    <a href="/privacy">World Map</a>
+  </div>
+  <div class="nav-status"><span class="status-dot"></span>SYSTEM ONLINE</div>
+</nav>
+
+<div class="page-content">
+  <section id="ai_detection">
+    <p class="eyebrow reveal">SYNTHETIC MEDIA</p>
+    <h1 class="section-title reveal">AI Content Detection</h1>
+    <p class="section-sub reveal">Upload images or videos to detect AI-generated or deepfake content</p>
+
+    <div class="upload-grid reveal">
+      <div class="upload-zone" id="zone-image">
+        <input type="file" id="input-image" accept="image/*" multiple onchange="handleFiles(this,'image')">
+        <div class="uz-icon">🖼️</div>
+        <div class="uz-title">Images</div>
+        <div class="uz-hint">.jpg .png .gif .webp<br>Click or drag to upload</div>
+        <div id="image-preview-wrap">
+          <img id="image-preview" alt="preview"/>
+          <div class="vp-name" id="fn-image"></div>
+        </div>
+      </div>
+      <div class="upload-zone" id="zone-video">
+        <input type="file" id="input-video" accept="video/*" onchange="handleFiles(this,'video')">
+        <div class="uz-icon">🎬</div>
+        <div class="uz-title">Videos</div>
+        <div class="uz-hint">.mp4 .mov .avi .webm<br>Click or drag to upload</div>
+        <div id="video-preview-wrap">
+          <video id="video-preview" muted playsinline controls></video>
+          <div class="vp-name" id="fn-video"></div>
+        </div>
+      </div>
+    </div> <div class="url-wrap reveal" id="zone-url">
+      <span class="url-icon">🔗</span>
+      <input type="url" class="url-input" id="input-url" placeholder="Or paste an image or video URL here..." oninput="handleUrlInput(this)">
+    </div>
+
+    <div id="file-list"></div>
+
+    <div class="action-row reveal">
+      <button class="btn-clear-all" id="clear-btn" onclick="clearAll()">✕ CLEAR ALL</button>
+      <button class="btn-primary" id="detect-btn" onclick="runDetection()">🤖 DETECT AI CONTENT</button>
+    </div>
+
+    <p class="formats-note reveal">Supported: JPG, PNG, GIF, WEBP, MP4, MOV, AVI, WEBM · Max 50MB per file</p>
+
+    <div id="ai-processing">
+      <div class="proc-line" id="ap-0">Loading detection models...</div>
+      <div class="proc-line" id="ap-1">Preprocessing uploaded media...</div>
+      <div class="proc-line" id="ap-2">Extracting visual/structural features...</div>
+      <div class="proc-line" id="ap-3">Scanning for GAN artifacts and deepfake signatures...</div>
+      <div class="proc-line" id="ap-4">Analyzing metadata and compression patterns...</div>
+      <div class="proc-line" id="ap-5">Running frequency domain analysis...</div>
+      <div class="proc-line" id="ap-6">Cross-referencing against known AI model outputs...</div>
+      <div class="proc-line" id="ap-7">Detection complete.</div>
+    </div>
+
+    <div id="ai-result">
+      <div class="ar-icon" id="ar-icon"></div>
+      <div style="flex:1">
+        <div class="ar-verdict" id="ar-verdict"></div>
+        <div class="ar-conf" id="ar-conf"></div>
+        <div class="ar-desc" id="ar-desc"></div>
+        <div class="ar-tags" id="ar-tags"></div>
+        
+        <div class="ar-actions">
+          <button class="ar-btn" onclick="clearAll()">↺ NEW DETECTION</button>
+        </div>
+
+        <div class="spatial-wrap" id="ar-spatial-wrap">
+          <img id="ar-spatial-img" class="spatial-img" alt="Spatial Analysis Report" />
+          <div class="spatial-desc">
+            <h4>WHAT AM I LOOKING AT?</h4>
+            <ul>
+              <li><strong>Map 1 (Hidden Edits):</strong> Looks for parts of the picture that were copy-pasted or altered.</li>
+              <li><strong>Map 2 (Artificial Smoothness):</strong> AI tends to make skin and backgrounds look "too perfect".</li>
+              <li><strong>Map 3 (Danger Zones):</strong> A combined heatmap of suspicious areas.</li>
+              <li><strong>Map 4 (Final Verdict):</strong> Top 3 flagged zones boxed.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="spatial-wrap" id="ar-video-wrap">
+          <img id="ar-video-img" class="spatial-img" style="background: transparent; border: none;" alt="Video Analysis Report" />
+          <div class="spatial-desc">
+            <h4>HOW TO READ THIS REPORT</h4>
+            <ul>
+              <li><strong>Suspicious Frames:</strong> If the video is fake, we draw a red box around the specific areas where the AI made a mistake (like a glitchy edge or warped texture).</li>
+              <li><strong>Plain English Signals:</strong> The chart explains the exact clues we found, translated from technical data into everyday language.</li>
+              <li><strong>Red vs Green:</strong> Red bars mean we found evidence of AI generation techniques. Green bars mean the video looks naturally recorded by a real camera.</li>
+            </ul>
+          </div>
+        </div>
+    </div>
+  </section>
+
+    <div id="file-list"></div>
+
+
+    <div id="ai-processing">
+      <div class="proc-line" id="ap-0">Loading detection models...</div>
+      <div class="proc-line" id="ap-1">Preprocessing uploaded media...</div>
+      <div class="proc-line" id="ap-2">Extracting visual/structural features...</div>
+      <div class="proc-line" id="ap-3">Scanning for GAN artifacts and deepfake signatures...</div>
+      <div class="proc-line" id="ap-4">Analyzing metadata and compression patterns...</div>
+      <div class="proc-line" id="ap-5">Running frequency domain analysis...</div>
+      <div class="proc-line" id="ap-6">Cross-referencing against known AI model outputs...</div>
+      <div class="proc-line" id="ap-7">Detection complete.</div>
+    </div>
+
+    <div id="ai-result">
+      <div class="ar-icon" id="ar-icon"></div>
+      <div style="flex:1">
+        <div class="ar-verdict" id="ar-verdict"></div>
+        <div class="ar-conf" id="ar-conf"></div>
+        <div class="ar-desc" id="ar-desc"></div>
+        <div class="ar-tags" id="ar-tags"></div>
+        <div class="ar-actions">
+          <button class="ar-btn" onclick="clearAll()">↺ NEW DETECTION</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="f-logo">TRACE<span style="color:var(--blue)">NET</span></div>
+    <div class="f-copy">ML-POWERED MISINFORMATION DETECTION · SKLEARN · THREE.JS</div>
+    <div class="f-copy">© 2026 TRACENET PROJECT</div>
+  </footer>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script>
+if (typeof applyStoredTheme === 'function') applyStoredTheme();
+if (typeof initCursor       === 'function') initCursor();
+if (typeof initBgCanvas     === 'function') initBgCanvas();
+if (typeof initScrollReveal === 'function') initScrollReveal();
+
+// Fallback stubs so the page never crashes if script.js is missing or incomplete
+if (typeof showLoader !== 'function') { window.showLoader = function(){}; }
+if (typeof hideLoader !== 'function') { window.hideLoader = function(){}; }
+
+const uploadedFiles = [];
+
+let uploadedUrl = ''; // Added to track URL
+
+function handleUrlInput(input) {
+  uploadedUrl = input.value.trim();
+  const wrap = document.getElementById('zone-url');
+  
+  if (uploadedUrl) {
+    wrap.classList.add('has-url');
+    // If they paste a URL, clear any uploaded files to enforce "either/or"
+    if (uploadedFiles.length) clearAllFilesOnly();
+  } else {
+    wrap.classList.remove('has-url');
+  }
+}
+
+// Helper to clear just files without clearing the URL
+function clearAllFilesOnly() {
+  uploadedFiles.length = 0;
+  renderFileList();
+  ['image','video'].forEach(z => document.getElementById('zone-' + z).classList.remove('has-file'));
+  document.getElementById('fn-image').textContent = '';
+  document.getElementById('fn-video').textContent = '';
+  document.getElementById('input-image').value = '';
+  document.getElementById('input-video').value = '';
+}
+
+function handleFiles(input, zone) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+
+  // If they upload a file, clear the URL to enforce "either/or"
+  if (uploadedUrl) {
+    uploadedUrl = '';
+    document.getElementById('input-url').value = '';
+    document.getElementById('zone-url').classList.remove('has-url');
+  }
+
+  if (zone === 'video') {
+    const f = files[0];
+    const prevIdx = uploadedFiles.findIndex(u => u.type.startsWith('video'));
+    if (prevIdx > -1) uploadedFiles.splice(prevIdx, 1);
+    uploadedFiles.push(f);
+    const preview = document.getElementById('video-preview');
+    const fnEl = document.getElementById('fn-video');
+    preview.src = URL.createObjectURL(f);
+    fnEl.textContent = f.name + ' · ' + formatSize(f.size);
+    document.getElementById('zone-video').classList.add('has-file');
+  } else if (zone === 'image') {
+    const f = files[0];
+    const imgEl = document.getElementById('image-preview');
+    if (imgEl.src && imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+    uploadedFiles.splice(0, uploadedFiles.length, ...uploadedFiles.filter(u => !u.type.startsWith('image')));
+    files.forEach(f2 => uploadedFiles.push(f2));
+    imgEl.src = URL.createObjectURL(f);
+    const fnEl = document.getElementById('fn-image');
+    fnEl.textContent = files.length === 1 ? f.name + ' · ' + formatSize(f.size) : files.length + ' images selected';
+    document.getElementById('zone-image').classList.add('has-file');
+  } else {
+    files.forEach(f => {
+      if (!uploadedFiles.find(u => u.name === f.name && u.size === f.size)) uploadedFiles.push(f);
+    });
+    const fnEl = document.getElementById('fn-' + zone);
+    const zoneEl = document.getElementById('zone-' + zone);
+    fnEl.textContent = files.length === 1 ? files[0].name : files.length + ' files selected';
+    zoneEl.classList.add('has-file');
+  }
+
+  renderFileList();
+  input.value = '';
+}
+
+function clearAll() {
+  clearAllFilesOnly();
+  
+  // Clear URL
+  uploadedUrl = '';
+  document.getElementById('input-url').value = '';
+  document.getElementById('zone-url').classList.remove('has-url');
+  
+  // Clear Previews & Results
+  const imgEl = document.getElementById('image-preview');
+  if (imgEl.src && imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+  imgEl.src = '';
+  const vidEl = document.getElementById('video-preview');
+  if (vidEl.src && vidEl.src.startsWith('blob:')) URL.revokeObjectURL(vidEl.src);
+  vidEl.src = '';
+  
+  document.getElementById('ai-processing').classList.remove('active');
+  const res = document.getElementById('ai-result');
+  res.className = '';
+  res.style.display = 'none';
+}
+
+function runDetection() {
+  // Check if BOTH are empty
+  if (!uploadedFiles.length && !uploadedUrl) {
+    ['zone-image','zone-video', 'zone-url'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.borderColor = 'var(--red)';
+        setTimeout(() => { el.style.borderColor = ''; }, 1800);
+      }
+    });
+    return;
+  }
+
+  const btn  = document.getElementById('detect-btn');
+  const proc = document.getElementById('ai-processing');
+  btn.disabled = true;
+  btn.textContent = '⏳ DETECTING...';
+  showLoader('Scanning for AI artifacts...');
+  proc.classList.add('active');
+  document.getElementById('ai-result').style.display = 'none';
+
+  for (let i = 0; i < 8; i++) {
+    const l = document.getElementById('ap-' + i);
+    if (l) l.classList.remove('show', 'done');
+  }
+
+  let li = 0;
+  const intv = setInterval(() => {
+    if (li > 0) { const prev = document.getElementById('ap-' + (li-1)); if (prev) prev.classList.add('done'); }
+    if (li < 8) { const el = document.getElementById('ap-' + li); if (el) el.classList.add('show'); }
+    li++;
+    if (li >= 8) clearInterval(intv);
+  }, 380);
+
+  const formData = new FormData();
+  
+  // Logic to determine if we send files or a URL
+  if (uploadedFiles.length) {
+    const primaryFile = uploadedFiles.find(f => f.type.startsWith('video')) || uploadedFiles[0];
+    const isVideo = primaryFile.type.startsWith('video');
+    formData.append('type', isVideo ? 'video' : 'image');
+    formData.append('file', primaryFile);
+  } else {
+    formData.append('type', 'media_url');
+    formData.append('url', uploadedUrl);
+  }
+
+  fetch('/process', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      clearInterval(intv);
+      hideLoader();
+      btn.disabled = false;
+      btn.textContent = '🤖 DETECT AI CONTENT';
+      if (data.error) { showAiResult(null, data.error); return; }
+      showAiResult(data, null);
+    })
+    .catch(err => {
+      clearInterval(intv);
+      hideLoader();
+      btn.disabled = false;
+      btn.textContent = '🤖 DETECT AI CONTENT';
+      showAiResult(null, 'Network error: ' + err.message);
+    });
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function fileIcon(type) {
+  if (type.startsWith('image')) return '🖼️';
+  if (type.startsWith('video')) return '🎬';
+  return '📄';
+}
+
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  const nonVideo = uploadedFiles.filter(f => !f.type.startsWith('video'));
+  if (!nonVideo.length) { list.className = ''; return; }
+  list.className = 'has-files';
+  list.innerHTML = nonVideo.map((f, i) => `
+    <div class="file-item">
+      <span class="fi-icon">${fileIcon(f.type)}</span>
+      <span class="fi-name">${f.name}</span>
+      <span class="fi-size">${formatSize(f.size)}</span>
+      <button class="fi-remove" onclick="removeFile('${f.name}')" title="Remove">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeFile(name) {
+  const idx = uploadedFiles.findIndex(f => f.name === name);
+  if (idx > -1) uploadedFiles.splice(idx, 1);
+  renderFileList();
+  if (!uploadedFiles.some(f => f.type.startsWith('image'))) {
+    document.getElementById('zone-image').classList.remove('has-file');
+    document.getElementById('fn-image').textContent = '';
+  }
+}
+
+
+function showAiResult(data, errorMsg) {
+  const res = document.getElementById('ai-result');
+
+  // --- 1. ERROR HANDLING ---
+  if (errorMsg) {
+    res.className = 'active ai-detected';
+    res.style.display = '';
+    document.getElementById('ar-icon').textContent = '❌';
+    const vEl = document.getElementById('ar-verdict');
+    vEl.textContent = 'ERROR'; vEl.className = 'ar-verdict ai-detected';
+    document.getElementById('ar-conf').textContent = '';
+    document.getElementById('ar-desc').textContent = errorMsg;
+    document.getElementById('ar-tags').innerHTML = '';
+    
+    const spatialWrap = document.getElementById('ar-spatial-wrap');
+    if (spatialWrap) spatialWrap.style.display = 'none';
+
+    res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+
+  // --- 2. MAIN VERDICT ---
+  const isAI = data.is_ai || false;
+  const conf  = data.score || 0;
+
+  res.className = 'active ' + (isAI ? 'ai-detected' : 'ai-clean');
+  res.style.display = '';
+
+  document.getElementById('ar-icon').textContent = isAI ? '⚠️' : '✓';
+  const vEl = document.getElementById('ar-verdict');
+  vEl.textContent = isAI ? 'AI-GENERATED CONTENT DETECTED' : 'NO AI ARTIFACTS FOUND';
+  vEl.className   = 'ar-verdict ' + (isAI ? 'ai-detected' : 'ai-clean');
+  document.getElementById('ar-conf').textContent = 'Confidence: ' + conf + '%  ·  Files analyzed: ' + (uploadedFiles.length || (uploadedUrl ? 1 : 0));  
+  
+  // --- 3. REASONING & MAPS DISPLAY LOGIC ---
+  const descEl = document.getElementById('ar-desc');
+  const spatialWrap = document.getElementById('ar-spatial-wrap');
+  const spatialImg = document.getElementById('ar-spatial-img');
+  
+  if (!isAI) {
+      // HIDE reasoning and maps if flagged as REAL
+      descEl.style.display = 'none';
+      descEl.innerHTML = '';
+      if (spatialWrap) spatialWrap.style.display = 'none';
+      document.getElementById('ar-tags').style.display = 'none';
+  } else {
+      // SHOW reasoning and maps if flagged as FAKE
+      descEl.style.display = 'block';
+      let reasoningHTML = '<div style="margin-top: 1.2rem; display: flex; flex-direction: column; gap: 0.8rem;">';
+      
+      if (Array.isArray(data.reasoning)) {
+          data.reasoning.forEach(item => {
+              const badgeClass = item.flag ? 'neg' : 'pos';
+              const badgeText  = item.flag ? 'FAKE SIGNAL' : 'REAL SIGNAL';
+              const description = item.desc || item.value || "Analysis complete.";
+              
+              reasoningHTML += `
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem;">
+                  <div style="font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.6rem;">
+                      <span class="ar-tag ${badgeClass}">[${badgeText}]</span>
+                      <strong style="color: ##374151; font-size: 0.95rem;">${item.feature}</strong>
+                  </div>
+                  <div style="font-size: 0.9rem; color: var(--text2); line-height: 1.6;">
+                      ${description}
+                  </div>
+              </div>`;
+          });
+      } else {
+          reasoningHTML += `<div style="font-size: 1.05rem; color: var(--text2); line-height: 1.6;">${data.reasoning || "Analysis complete."}</div>`;
+      }
+      reasoningHTML += '</div>';
+
+      descEl.innerHTML = reasoningHTML;
+      document.getElementById('ar-tags').style.display = 'none'; // Hide old tags
+
+      // --- 4. SPATIAL MAP DISPLAY (Only when Fake) ---
+      // --- 4. SPATIAL/LIME MAP DISPLAY ---
+      const videoWrap = document.getElementById('ar-video-wrap');
+      const videoImg = document.getElementById('ar-video-img');
+
+      if (data && data.video_report_b64) {
+        // Render Video LIME report
+        videoImg.src = 'data:image/jpeg;base64,' + data.video_report_b64;
+        videoWrap.style.display = 'block';
+        if (spatialWrap) spatialWrap.style.display = 'none';
+      } else if (data && data.spatial_report_b64) {
+        // Render Image Spatial report
+        spatialImg.src = 'data:image/jpeg;base64,' + data.spatial_report_b64;
+        if (spatialWrap) spatialWrap.style.display = 'block';
+        if (videoWrap) videoWrap.style.display = 'none';
+      } else {
+        // Hide both if no report generated
+        if (spatialWrap) spatialWrap.style.display = 'none';
+        if (videoWrap) videoWrap.style.display = 'none';
+      }
+  }
+
+  res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+</body>
+</html>
