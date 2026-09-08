@@ -96,4 +96,5 @@ websockets==17.0.1
 Werkzeug==3.1.8
 whitenoise==6.2.0
 wrapt==2.3.0
-xhtml2pdf==0.2.15gunicorn==23.0.0
+xhtml2pdf==0.2.15
+gunicorn==23.0.0
